@@ -5,6 +5,13 @@ info:
 servers:
   - url: https://auth.nodefinance.xyz/v1
 components:
+  responses:
+    UnauthorizedError:
+      description: Authentication information is missing or invalid
+      headers:
+        WWW_Authenticate:
+          schema:
+            type: string
   securitySchemes:
     google: # arbitrary name for the security scheme
       type: http
@@ -16,7 +23,53 @@ components:
     web3:
       type: http
       scheme: web3
+    nodeAuth: # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
+    GoogleCredentials:
+      type: string
+      description: JWT from google oauth
+    BasicCredentials:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    Web3Credentials:
+      type: object
+      properties:
+        nonce:
+          type: integer
+        email:
+          type: string
+          format: email
+    Authorization:
+      type: object
+      properties:
+        _type:
+          type: string
+          enum: [google, basic, web3]
+        expiry:
+          type: number
+          format: time
+        credentials:
+          type: object
+          enum:
+            - $ref: "#components/schema/GoogleCredentials"
+            - $ref: "#components/schema/BasicCredentials"
+            - $ref: "#components/schema/Web3Credentials"
+    Permissions:
+      type: object
+      additionalProperties: true
+    TenantInformation:
+      type: object
+      properties:
+        name:
+          type: string
     TenantCreated:
       type: object
       properties:
@@ -41,10 +94,23 @@ components:
           type: string
         nonce:
           type: integer
+        permissions:
+          $ref: "#/components/schemas/Permissions"
       required:
         - id
         - service
         - email
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        permissions:
+          $ref: "#/components/schemas/Permissions"
 
 paths:
   /healthcheck:
@@ -52,8 +118,16 @@ paths:
       responses:
         "200":
           description: OK
-  /tenants/{name}:
+  /auth:
+
+  /tenants:
     post:
+      summary: Creates a new tenant, and a new user alongside it
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TenantInformation"
       security:
         - google: []
         - basicAuth: []
@@ -61,8 +135,137 @@ paths:
 
       responses:
         "200":
-          description: OK
+          description: Successful creation of tenant
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/TenantCreated"
+        "403":
+          description: Operation was unauthorized.  Google credentials invalid or signature invalid
+        "400":
+          description: A user belonging to another tenant already exists with the given credentials
+  /tenants/{tid}:
+    description: Info on a given tenant
+    parameters:
+      - name: tid
+        in: path
+        description: Tenant ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+
+  /tenants/{tid}/users:
+    description: Info on authorized users within a tenant
+    parameters:
+      - name: tid
+        in: path
+        description: Tenant ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      parameters:
+        - in: path
+          name: page
+          description: page of users to fetch
+          required: false
+          schema:
+            type: integer
+      description: Gets all authorized users for tenant tid
+      responses:
+        "403":
+          $ref: "#components/responses/UnauthorizedError"
+        "200":
+          description: Successfully fetched users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  page:
+                    type: integer
+                    format: uint64
+                  totalPages:
+                    type: integer
+                    format: uint64
+                  users:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+    post:
+      description: Create a new user under tenant tid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                address:
+                  type: string
+                permissions:
+                  $ref: "#/components/schemas/Permissions"
+              required:
+                - email
+      responses:
+        "403":
+          $ref: "#components/responses/UnauthorizedError"
+        "401":
+          description: User already exists with given credentials
+        "200":
+          description: User created Successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+  /tenants/{tid}/roles:
+    description: Info on roles within a tenant
+    parameters:
+      - name: tid
+        in: path
+        description: Tenant ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      description: Gets all roles for tenant tid
+      responses:
+        "403":
+          $ref: "#components/responses/UnauthorizedError"
+        "200":
+          description: Successfully fetched roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Role"
+    post:
+      description: Create a new role under tenant tid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                permissions:
+                  $ref: "#/components/schemas/Permissions"
+      responses:
+        "403":
+          $ref: "#components/responses/UnauthorizedError"
+        "401":
+          description: Role already exists with given credentials
+        "200":
+          description: Role created Successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Role"
