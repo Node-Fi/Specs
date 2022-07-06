@@ -1,0 +1,142 @@
+openapi: "3.0.2"
+info:
+  title: Node Finanec CRM API
+  version: "0.0"
+servers:
+  - url: https://api.server.test/v1
+components:
+  securitySchemes:
+    nodeAuth: # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    UserMetadata:
+      type: object
+      properties:
+        device_type:
+          type: string
+        last_login:
+          type: string
+        country:
+          type: string
+        location:
+          type: string
+        txn_count:
+          type: number
+        average_session:
+          type: number
+        max_session:
+          type: number
+        min_session:
+          type: number
+        created_on:
+          type: string
+
+    UserBasic:
+      type: object
+      properties:
+        id:
+          type: integer
+        address:
+          type: string
+        aum_cusd:
+          type: number
+      additionalProperties:
+        $ref: "#components/schemas/UserMetadata"
+
+security:
+  - nodeAuth: []
+
+paths:
+  /healthcheck:
+    get:
+      responses:
+        "200":
+          description: OK
+  /users:
+    summary: "Information on users for a given tenant"
+    get:
+      parameters:
+        - in: path
+          name: page
+          schema:
+            type: string
+          required: true
+          description: Page number of users
+        - in: path
+          name: count
+          schema:
+            type: integer
+          required: true
+          description: Number of users per page.
+      responses:
+        "200":
+          description: Success, array of user objects
+  /users/{id}:
+    summary: "Information on user pertaining to ID {id}"
+    get:
+      parameters:
+        - in: path
+          name: metadata
+          schema:
+            type: boolean
+          required: false
+          description: Flag to include metadata on user or not
+      responses:
+        "403":
+          description: Unauthorized access of user
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#components/schemas/UserBasic"
+  /users/summary:
+    summary: "Summarizing info of all users for tenant"
+    get:
+      responses:
+        "403":
+          description: Unauthorized access
+        "200":
+          description: Statistics for requested keys
+  /users/summary/device:
+    summary: "Summarizing info of users based on device type"
+    get:
+      responses:
+        "403":
+          description: Unauthorized access
+        "200":
+          description: Statistics broken down by device type
+  /users/summary/geo:
+    summary: "Summarizing info of users based on geolocation"
+    get:
+      responses:
+        "403":
+          description: Unauthorized access
+        "200":
+          description: Statistics broken down by country
+  /users/growth:
+    summary: "User growth over time"
+    get:
+      responses:
+        "403":
+          description: Unauthorized access
+        "200":
+          description: Statistics for user growth over time
+  /users/growth/device:
+    summary: "Summarizing info of user growth based on device type"
+    get:
+      responses:
+        "403":
+          description: Unauthorized access
+        "200":
+          description: Statistics broken down by device type
+  /users/growth/geo:
+    summary: "Summarizing info of user growth based on geolocation"
+    get:
+      responses:
+        "403":
+          description: Unauthorized access
+        "200":
+          description: Statistics broken down by country
