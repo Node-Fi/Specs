@@ -59,9 +59,9 @@ components:
         credentials:
           type: object
           enum:
-            - $ref: "#components/schema/GoogleCredentials"
-            - $ref: "#components/schema/BasicCredentials"
-            - $ref: "#components/schema/Web3Credentials"
+            - $ref: "#/components/schemas/GoogleCredentials"
+            - $ref: "#/components/schemas/BasicCredentials"
+            - $ref: "#/components/schemas/Web3Credentials"
     Permissions:
       type: object
       additionalProperties: true
