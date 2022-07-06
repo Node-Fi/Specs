@@ -119,6 +119,33 @@ paths:
         "200":
           description: OK
   /auth:
+    post:
+      summary: Log in and receive a bearer token JWT
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Authorization"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jwt:
+                    type: string
+                    format: jwt
+                  expiry:
+                    type: number
+                    format: unix time
+                  permissions:
+                    $ref: "#components/schemas/Permissions"
+        "403":
+          $ref: "#components/responses/UnauthorizedError"
+        "404":
+          description: User not found with given credentials
 
   /tenants:
     post:
