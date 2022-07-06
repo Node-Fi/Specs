@@ -1,0 +1,68 @@
+openapi: "3.0.2"
+info:
+  title: Node Authorization Service
+  version: "1.0"
+servers:
+  - url: https://auth.nodefinance.xyz/v1
+components:
+  securitySchemes:
+    google: # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    basicAuth:
+      type: http
+      scheme: basic
+    web3:
+      type: http
+      scheme: web3
+  schemas:
+    TenantCreated:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: integer
+        apiKey:
+          type: string
+        owner:
+          $ref: "#/components/schemas/User"
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        service:
+          type: integer
+        address:
+          type: string
+        nonce:
+          type: integer
+      required:
+        - id
+        - service
+        - email
+
+paths:
+  /healthcheck:
+    get:
+      responses:
+        "200":
+          description: OK
+  /tenants/{name}:
+    post:
+      security:
+        - google: []
+        - basicAuth: []
+        - web3: []
+
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenantCreated"
