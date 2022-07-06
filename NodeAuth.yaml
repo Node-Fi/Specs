@@ -141,9 +141,9 @@ paths:
                     type: number
                     format: unix time
                   permissions:
-                    $ref: "#components/schemas/Permissions"
+                    $ref: "#/components/schemas/Permissions"
         "403":
-          $ref: "#components/responses/UnauthorizedError"
+          $ref: "#/components/responses/UnauthorizedError"
         "404":
           description: User not found with given credentials
 
@@ -203,7 +203,7 @@ paths:
       description: Gets all authorized users for tenant tid
       responses:
         "403":
-          $ref: "#components/responses/UnauthorizedError"
+          $ref: "#/components/responses/UnauthorizedError"
         "200":
           description: Successfully fetched users
           content:
@@ -239,7 +239,7 @@ paths:
                 - email
       responses:
         "403":
-          $ref: "#components/responses/UnauthorizedError"
+          $ref: "#/components/responses/UnauthorizedError"
         "401":
           description: User already exists with given credentials
         "200":
@@ -262,7 +262,7 @@ paths:
       description: Gets all roles for tenant tid
       responses:
         "403":
-          $ref: "#components/responses/UnauthorizedError"
+          $ref: "#/components/responses/UnauthorizedError"
         "200":
           description: Successfully fetched roles
           content:
@@ -287,7 +287,7 @@ paths:
                   $ref: "#/components/schemas/Permissions"
       responses:
         "403":
-          $ref: "#components/responses/UnauthorizedError"
+          $ref: "#/components/responses/UnauthorizedError"
         "401":
           description: Role already exists with given credentials
         "200":
