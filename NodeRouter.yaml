@@ -1,0 +1,151 @@
+openapi: "3.0.2"
+info:
+  title: Node Finance Router
+  version: "1.0"
+servers:
+  - url: https://router.nodefinance.org
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+  schemas:
+    PartnerId:
+      type: integer
+      format: uint64
+      description: ID of tenant under which the trade occurs
+    Signature:
+      type: string
+      format: Hex string
+      description: Signature originating from an authorized private key, confirming the validity of the partner id and swap quote
+    Address:
+      type: string
+      format: "20 byte EVM address"
+    BigNumberString:
+      type: string
+      format: "Raw uint256 value"
+    UnixTime:
+      type: integer
+      format: Unix Seconds
+    ChainId:
+      type: integer
+      enum:
+        - 42220
+        - 4487
+    DepositData:
+      type: object
+      properties:
+        addr:
+          $ref: "#/components/schemas/Address"
+        extra:
+          type: string
+    SwapPayload:
+      type: object
+      properties:
+        path:
+          type: array
+          items:
+            $ref: "#/components/schemas/Address"
+        pairs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Address"
+        extras:
+          type: array
+          items:
+            $ref: "#/components/schemas/Address"
+        inputAmount:
+          $ref: "#/components/schemas/BigNumberString"
+        expectedOutputAmount:
+          $ref: "#/components/schemas/BigNumberString"
+        deadline:
+          $ref: "#/components/schemas/UnixTime"
+        partner:
+          $ref: "#/components/schemas/PartnerId"
+        sig:
+          $ref: "#/components/schemas/Signature"
+    Quote:
+      type: object
+      properties:
+        expectedOut:
+          $ref: "#/components/schemas/BigNumberString"
+        routerAddress:
+          $ref: "#/components/schemas/Address"
+        details:
+          $ref: "#/components/schemas/SwapPayload"
+    DepositPayload:
+      type: object
+      properties:
+        expectedOut:
+          $ref: "#/components/schemas/BigNumberString"
+        routerAddress:
+          $ref: "#/components/schemas/Address"
+        oneClickFarmAddress:
+          $ref: "#/components/schemas/Address"
+        underlyingRoutes:
+          type: array
+          items:
+            $ref: "#/components/schemas/SwapPayload"
+paths:
+  /:
+    summary: Health check
+    get:
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alive:
+                    type: boolean
+                  state:
+                    type: string
+                    enum: [ready, restarting]
+        "500":
+          description: Service down
+  /routes:
+    summary: Information and calculations for swap routes
+    get:
+      description: Get a swap route from one token to another
+      parameters:
+        - in: path
+          name: tokenIn
+          schema:
+            $ref: "#/components/schemas/Address"
+          required: true
+          description: Input token for swap
+        - in: path
+          name: tokenOut
+          schema:
+            $ref: "#/components/schemas/Address"
+          description: Output token
+          required: true
+        - in: path
+          name: inputAmount
+          schema:
+            $ref: "#/components/schemas/BigNumberString"
+          description: Total amount of input token to be traded
+          required: true
+        - in: path
+          name: deadlineMs
+          schema:
+            $ref: "#/components/schemas/UnixTime"
+          required: false
+          description: Deadline for quote, defaults to 5 minutes
+        - in: path
+          name: chainId
+          schema:
+            $ref: "#/components/schemas/ChainId"
+          required: false
+          description: Chain to perform swap on, defaults to 42220 (CELO). More chains coming soon.
+      responses:
+        "200":
+          description: Path found Successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Quote"
