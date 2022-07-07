@@ -75,7 +75,7 @@ components:
           $ref: "#/components/schemas/Address"
         details:
           $ref: "#/components/schemas/SwapPayload"
-    DepositPayload:
+    DepositWithdrawPayload:
       type: object
       properties:
         expectedOut:
@@ -190,4 +190,46 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DepositPayload"
+                $ref: "#/components/schemas/DepositWithdrawPayload"
+  /earn/withdraw:
+    summary: Route calculation to withdraw from an LP position into one token in a single transaction
+    get:
+      description: Get a withdraw route from one lp position to a standard ERC20
+      parameters:
+        - in: path
+          name: tokenIn
+          schema:
+            $ref: "#/components/schemas/Address"
+          required: true
+          description: Input LP or Gauge token
+        - in: path
+          name: tokenOut
+          schema:
+            $ref: "#/components/schemas/Address"
+          description: Target ERC20
+          required: true
+        - in: path
+          name: inputAmount
+          schema:
+            $ref: "#/components/schemas/BigNumberString"
+          description: Total amount of input token to be withdrawn
+          required: true
+        - in: path
+          name: deadlineMs
+          schema:
+            $ref: "#/components/schemas/UnixTime"
+          required: false
+          description: Deadline for quote, defaults to 5 minutes
+        - in: path
+          name: chainId
+          schema:
+            $ref: "#/components/schemas/ChainId"
+          required: false
+          description: Chain to perform swap on, defaults to 42220 (CELO). More chains coming soon.
+      responses:
+        "200":
+          description: Path found Successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepositWithdrawPayload"
