@@ -149,3 +149,45 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Quote"
+  /earn/deposit:
+    summary: Route calculation to deposit into a farm or LP position with one transaction
+    get:
+      description: Get a swap route from one token to another
+      parameters:
+        - in: path
+          name: tokenIn
+          schema:
+            $ref: "#/components/schemas/Address"
+          required: true
+          description: Input token
+        - in: path
+          name: tokenOut
+          schema:
+            $ref: "#/components/schemas/Address"
+          description: Target LP or Gauge token
+          required: true
+        - in: path
+          name: inputAmount
+          schema:
+            $ref: "#/components/schemas/BigNumberString"
+          description: Total amount of input token to be traded
+          required: true
+        - in: path
+          name: deadlineMs
+          schema:
+            $ref: "#/components/schemas/UnixTime"
+          required: false
+          description: Deadline for quote, defaults to 5 minutes
+        - in: path
+          name: chainId
+          schema:
+            $ref: "#/components/schemas/ChainId"
+          required: false
+          description: Chain to perform swap on, defaults to 42220 (CELO). More chains coming soon.
+      responses:
+        "200":
+          description: Path found Successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DepositPayload"
