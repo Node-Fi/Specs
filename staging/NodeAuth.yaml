@@ -1,0 +1,420 @@
+openapi: "3.0.2"
+info:
+  title: Node Authorization Service
+  version: "1.0"
+servers:
+  - url: https://staging.auth.nodefinance.org/
+components:
+  responses:
+    UnauthorizedError:
+      description: Authentication information is missing or invalid
+      headers:
+        WWW_Authenticate:
+          schema:
+            type: string
+  securitySchemes:
+    google: # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    GoogleCredentials:
+      type: string
+      description: JWT from google oauth
+    BasicCredentials:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    Web3Credentials:
+      type: object
+      properties:
+        nonce:
+          type: integer
+        email:
+          type: string
+          format: email
+    Authorization:
+      type: object
+      properties:
+        _type:
+          type: string
+          enum: [google, basic, web3]
+        email:
+          type: string
+          format: email@email.com
+        password:
+          type: string
+    Permission:
+      type: string
+      pattern: "[wra]+[_][a-zA-Z]+"
+      format: <w | r | a | wr | wra | ra>_<resource>[.<subdivision>]
+    PermissionsArray:
+      type: array
+      items:
+        $ref: "#/components/schemas/Permission"
+    PermissionMap:
+      type: object
+      properties:
+        resource:
+          type: string
+          enum: ["w", "r", "a", "wr", "wa", "ra", "wra"]
+    TenantCreationInformation:
+      type: object
+      properties:
+        name:
+          type: string
+        owner:
+          type: object
+          properties:
+            email:
+              type: string
+            passWord:
+              type: string
+            walletAddress:
+              type: string
+    TenantCreated:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: integer
+        apiKey:
+          type: string
+        owner:
+          $ref: "#/components/schemas/User"
+    UserResponsePayload:
+      type: object
+      properties:
+        uid:
+          type: integer
+        email:
+          type: string
+        tenant:
+          type: integer
+        walletAddress:
+          type: string
+        permissions:
+          $ref: "#/components/schemas/PermissionMap"
+    TenantResponsePayload:
+      type: object
+      properties:
+        tid:
+          type: integer
+        name:
+          type: string
+        apiKey:
+          type: string
+          format: UUID
+          description: API Key to integrate with our services.  If this is lost it will have to be regenerated, we do not store them in plaintext
+        owner:
+          $ref: "#/components/schemas/UserResponsePayload"
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        tenant:
+          type: integer
+        address:
+          type: string
+        nonce:
+          type: integer
+        permissions:
+          $ref: "#/components/schemas/PermissionsArray"
+      required:
+        - id
+        - service
+        - email
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        permissions:
+          $ref: "#/components/schemas/PermissionsArray"
+
+paths:
+  /healthcheck:
+    get:
+      responses:
+        "200":
+          description: OK
+  /auth:
+    post:
+      summary: Log in and receive a bearer token JWT
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Authorization"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jwt:
+                    type: string
+                    format: jwt
+                  permissions:
+                    $ref: "#/components/schemas/PermissionsArray"
+        "403":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: User not found with given credentials
+  /verify:
+    get:
+      summary: Verifies a JWT for a user and returns the corresponding User info
+      parameters:
+        - name: jwt
+          required: true
+          in: path
+          description: JWT to check for Authentication
+          schema:
+            type: string
+            format: <alg>.<payload>.<signature>
+      responses:
+        "200":
+          description: Verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponsePayload"
+        "403":
+          $ref: "#/components/responses/UnauthorizedError"
+  /credentials:
+    get:
+      summary: Returns the current signing credentials for the auth service
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  publicKey:
+                    type: string
+                    format: RSA Publickey
+                  expiry:
+                    type: integer
+                    format: Unix Timestamp
+        "400":
+          description: Bad response
+
+  /tenants:
+    post:
+      summary: Creates a new tenant, and a new user alongside it
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TenantCreationInformation"
+      security:
+        - google: []
+        - basicAuth: []
+        - web3: []
+
+      responses:
+        "200":
+          description: Successful creation of tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenantCreated"
+        "403":
+          description: Operation was unauthorized.  Google credentials invalid or signature invalid
+        "400":
+          description: A user belonging to another tenant already exists with the given credentials
+    get:
+      description: Info on tenant linked to JWT
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+    patch:
+      description: Allows to update tenant information
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                cycleApiKey:
+                  type: boolean
+      responses:
+        "200":
+          description: Success
+        "400":
+          description: Bad Request
+        "401":
+          description: Forbidden
+        "403":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /users:
+    description: Info on authorized users within a tenant
+    get:
+      description: Gets all authorized users for tenant tid
+      responses:
+        "403":
+          $ref: "#/components/responses/UnauthorizedError"
+        "200":
+          description: Successfully fetched users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserResponsePayload"
+    post:
+      description: Create a new user under tenant tid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                address:
+                  type: string
+                initialPermissions:
+                  $ref: "#/components/schemas/PermissionsArray"
+              required:
+                - email
+      responses:
+        "403":
+          $ref: "#/components/responses/UnauthorizedError"
+        "401":
+          description: User already exists with given credentials
+        "200":
+          description: User created Successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponsePayload"
+    patch:
+      description: Update information on a user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  description: Only current user can change their own email
+                passWord:
+                  type: string
+                  description: Only current user can change their own password
+                permissions:
+                  type: object
+                  properties:
+                    add:
+                      $ref: "#/components/schemas/PermissionsArray"
+                    remove:
+                      $ref: "#/components/schemas/PermissionsArray"
+                roles:
+                  type: object
+                  properties:
+                    add:
+                      type: array
+                      items:
+                        type: string
+                    remove:
+                      type: array
+                      items:
+                        type: string
+      responses:
+        "200":
+          description: Success
+        "403":
+          $ref: "#/components/responses/UnauthorizedError"
+        "401":
+          description: User already exists with given credentials
+
+  /roles:
+    description: Info on roles within a tenant
+    get:
+      description: Gets all roles for tenant tid
+      responses:
+        "403":
+          $ref: "#/components/responses/UnauthorizedError"
+        "200":
+          description: Successfully fetched roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Role"
+    post:
+      description: Create a new role under tenant tid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                resources:
+                  $ref: "#/components/schemas/PermissionsArray"
+      responses:
+        "403":
+          $ref: "#/components/responses/UnauthorizedError"
+        "401":
+          description: Role already exists with given credentials
+        "200":
+          description: Role created Successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Role"
+    patch:
+      description: Update resources for a role
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                resources:
+                  type: object
+                  properties:
+                    add:
+                      $ref: "#/components/schemas/PermissionsArray"
+                    remove:
+                      $ref: "#/components/schemas/PermissionsArray"
+      responses:
+        "200":
+          description: OK
+        "403":
+          $ref: "#/components/responses/UnauthorizedError"
