@@ -145,8 +145,9 @@ components:
           $ref: "#/components/schemas/PermissionsArray"
 
 paths:
-  /healthcheck:
+  /:
     get:
+      description: Health check
       responses:
         "200":
           description: OK
