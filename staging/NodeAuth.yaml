@@ -147,7 +147,7 @@ components:
 paths:
   /:
     get:
-      description: Health check
+      description: Check status of service
       responses:
         "200":
           description: OK
