@@ -134,6 +134,26 @@ paths:
           description: Total amount of input token to be traded
           required: true
         - in: path
+          name: from
+          schema:
+            $ref: "#/components/schemas/Address"
+          required: false
+          description: Transaction originator.  If present, will return a transaction ready to be signed
+        - in: path
+          name: slippage
+          schema:
+            type: integer
+            format: BPS
+          description: Allowed slippage, in bips.  Can be congifigured at transaction, defaults to 10 BPS
+          required: false
+        - in: path
+          name: to
+          schema:
+            $ref: "#/components/schemas/Address"
+          required: false
+          description: Recipient of trade.  Defaults to `from`
+
+        - in: path
           name: deadlineMs
           schema:
             $ref: "#/components/schemas/UnixTime"
