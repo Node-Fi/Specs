@@ -128,7 +128,7 @@ paths:
           description: Output token
           required: true
         - in: path
-          name: inputAmount
+          name: amountIn
           schema:
             $ref: "#/components/schemas/BigNumberString"
           description: Total amount of input token to be traded
