@@ -1,0 +1,93 @@
+openapi: 3.0.2
+info:
+  title: Wallet Service API
+  version: "1.0"
+servers:
+  - url: https://api.nodefinance.org/v1/wallets
+paths: {}
+components:
+  schemas:
+    Wallet:
+      type: object
+      properties:
+        wid:
+          type: integer
+        address:
+          type: string
+      required:
+        - wid
+        - address
+
+    Tenant:
+      type: object
+      properties:
+        tid:
+          type: integer
+        opt_in_tracking:
+          type: boolean
+      required:
+        - tid
+        - opt_in_tracking
+
+    Metadata:
+      type: object
+      properties:
+        tenant:
+          type: integer
+        wallet:
+          type: integer
+        registered_on:
+          type: integer
+        device_type:
+          type: string
+        device_brand:
+          type: string
+        ip:
+          type: string
+        country:
+          type: string
+        region:
+          type: string
+        location:
+          type: object
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+          required:
+            - x
+            - y
+        city:
+          type: string
+        continent:
+          type: string
+        additional_info:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - tenant
+        - wallet
+        - registered_on
+        - device_type
+        - device_brand
+        - ip
+        - country
+        - region
+        - location
+        - city
+        - continent
+        - additional_info
+  securitySchemes:
+    HeaderApiKey:
+      type: apiKey
+      name: x-api-key
+      in: header
+    BearerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - HeaderApiKey: []
+  - BearerToken: []
